@@ -5,7 +5,7 @@ import { Client } from 'node-osc';
 const wss = new WebSocketServer({ port: 8080 });
 
 // Create OSC client to send messages to Max/MSP
-const oscClient = new Client('127.0.0.1', 7400);
+const oscClient = new Client('127.0.0.1', 7500);
 
 // wss.on('connection', (ws) => {
 //   console.log('Web client connected');
