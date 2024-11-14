@@ -1,24 +1,53 @@
 import {vec2} from 'gl-matrix';
 
+// an container of parameters to control:
+let params = {
+  speed_limit: 1,
+  acceleration_limit: 0.1,
+  collision_distance: 30,
+  collision_factor: 700,
+  wander_factor: 300,
+  antitarget_factor: 400000,
+  field_of_view: 2.5,
+  cohesion_factor: 5,
+  alignment_factor: 150,
+  number_boids: 100
+};
+
+// // create the interface:
+// let gui = new dat.GUI({ name: "My GUI", closed: true });
+// // add a slider for params.speed, in the range of 0 to 10, stepping in 1's
+// gui.add(params, "speed_limit", 0, 100);
+// gui.add(params, "acceleration_limit", 0, 1);
+// gui.add(params, "collision_distance", 1, 500);
+// gui.add(params, "collision_factor", 0, 10000);
+// gui.add(params, "wander_factor", 0, 100);
+// gui.add(params, "antitarget_factor", -10000000, 10000000);
+// gui.add(params, "field_of_view", 0, Math.PI);
+// gui.add(params, "cohesion_factor", 0.01, 10);
+// gui.add(params, "alignment_factor", 0.01, 100);
+
 
 const ws = new WebSocket('ws://localhost:8080');
 
 function sendToMax(data) {
-  console.log(ws.readyState);
+  changeLineColor(100)
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(data));
     console.log("Message sent to Max:", data);
   } else {
       console.log("WebSocket not ready, waiting for connection...");
   }
+
 }
 
-sendToMax({ frequency: 440, amplitude: 0.8 });
 
-// Example usage
-setTimeout(() => {
-  sendToMax({ frequency: 440, amplitude: 0.8 });  
-}, 1000);
+function changeLineColor(s) {
+  lineColor = "#D3EAB0";
+  setTimeout(() => {
+    lineColor = "#8F851C";
+  }, s); 
+}
 
 
 
@@ -27,6 +56,8 @@ setTimeout(() => {
 // there is a canvas
 let canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext("2d");
+
+let lineColor = "#8F851C";
 
 let resize = function () {
   canvas.width = window.innerWidth;
@@ -70,26 +101,52 @@ canvas.addEventListener("pointermove", function (event) {
 window.addEventListener("keydown", (event) => {});
 
 // wrap an { x, y } position around canvas width/height
-function donut(pos) {
-  if (pos[0] > canvas.width) {
-    outOfBounds(pos);
-    pos[0] -= canvas.width;
-  } else if (pos[0] < 0) {
-    outOfBounds(pos);
-    pos[0] += canvas.width;
+function donut(agent) {
+  if (agent.pos[0] > canvas.width) {
+    outOfBounds(agent);
+    agent.pos[0] -= canvas.width;
+  } else if (agent.pos[0] < 0) {
+    outOfBounds(agent);
+    agent.pos[0] += canvas.width;
   }
-  if (pos[1] > canvas.height) {
-    outOfBounds(pos);
-    pos[1] -= canvas.height;
-  } else if (pos[1] < 0) {
-    outOfBounds(pos);
-    pos[1] += canvas.height;
+  if (agent.pos[1] > canvas.height) {
+    outOfBounds(agent);
+    agent.pos[1] -= canvas.height;
+  } else if (agent.pos[1] < 0) {
+    outOfBounds(agent);
+    agent.pos[1] += canvas.height;
   }
-  return pos;
+  return agent.pos;
 }
 
-function outOfBounds(pos) {
-  // console.log("boid out at:" + pos);
+function centerLineCollision(agent, index) {
+  const lineX = canvas.width / 2; // X-coordinate of the vertical line
+  const previousX = previousPositions[index]; // Retrieve previous x-coordinate
+  const currentX = agent.pos[0]; // Current x-coordinate of the boid
+  const distanceCurPrev = Math.abs(previousX - currentX);
+  const distanceThreshold = 10;
+
+  if (previousX < lineX && currentX >= lineX && distanceCurPrev < 10) {
+    console.log(`Boid ${index} crossed the line from left to right.`);
+    console.log(distanceCurPrev);
+    let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1], dir: 1};
+    sendToMax(message);
+  } else if (previousX >= lineX && currentX < lineX && distanceCurPrev < 10) {
+    let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1], dir: -1};
+    console.log(distanceCurPrev);
+    sendToMax(message);
+    console.log(`Boid ${index} crossed the line from right to left.`);
+  }
+
+  // Update the stored position
+  previousPositions[index] = currentX;
+}
+
+function outOfBounds(agent) {
+  let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1] };
+
+  // sendToMax(message);
+  
 }
 
 function vec2_maxlength(out, v, limit) {
@@ -115,7 +172,7 @@ function vec2_relativewrap(out, v, w, h) {
 //////////////
 
 let agents = [];
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < params.number_boids; i++) {
   let agent = {
     pos: [Math.random() * canvas.width, Math.random() * canvas.height],
     orient: Math.random() * 2 * Math.PI,
@@ -125,31 +182,8 @@ for (let i = 0; i < 10; i++) {
   agents.push(agent);
 }
 
-// an container of parameters to control:
-let params = {
-  speed_limit: 1,
-  acceleration_limit: 0.1,
-  collision_distance: 30,
-  collision_factor: 700,
-  wander_factor: 300,
-  antitarget_factor: 400000,
-  field_of_view: 2.5,
-  cohesion_factor: 3,
-  alignment_factor: 150
-};
+let previousPositions = agents.map(agent => agent.pos[0]); // Stores only x-coordinates
 
-// // create the interface:
-// let gui = new dat.GUI({ name: "My GUI", closed: true });
-// // add a slider for params.speed, in the range of 0 to 10, stepping in 1's
-// gui.add(params, "speed_limit", 0, 100);
-// gui.add(params, "acceleration_limit", 0, 1);
-// gui.add(params, "collision_distance", 1, 500);
-// gui.add(params, "collision_factor", 0, 10000);
-// gui.add(params, "wander_factor", 0, 100);
-// gui.add(params, "antitarget_factor", -10000000, 10000000);
-// gui.add(params, "field_of_view", 0, Math.PI);
-// gui.add(params, "cohesion_factor", 0.01, 10);
-// gui.add(params, "alignment_factor", 0.01, 100);
 
 function flowfield(pos) {
   let upos = vec2.div([0, 0], pos, [canvas.width, canvas.height]);
@@ -161,9 +195,10 @@ function flowfield(pos) {
 // animate:
 function animate() {
   // let the target wander around
-  let wander = vec2.random([0, 0], Math.random() * 10);
-  vec2.add(target, target, wander);
-  donut(target);
+  // let wander = vec2.random([0, 0], Math.random() * 10);
+  // vec2.add(target, target, wander);
+
+  // donut(target);
 
   for (let agent of agents) {
     // add up all the forces on this agent
@@ -274,13 +309,16 @@ function animate() {
     vec2_maxlength(agent.acc, agent.acc, params.acceleration_limit);
   }
 
-  for (let agent of agents) {
+  for (let i = 0; i < agents.length; i++)  {
+    let agent = agents[i];
     // assume acceleration == force
     vec2.add(agent.vel, agent.vel, agent.acc);
     vec2_maxlength(agent.vel, agent.vel, params.speed_limit);
 
     vec2.add(agent.pos, agent.pos, agent.vel);
-    donut(agent.pos);
+    donut(agent);
+
+    centerLineCollision(agent, i);
 
     agent.orient = Math.atan2(agent.vel[1], agent.vel[0]);
     //agent.orient = vec2.angle(agent.vel, [1, 0]);
@@ -294,6 +332,16 @@ function draw() {
 
   // 	clear screen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#1E1E21";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw the vertical line
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
+  ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
+  ctx.strokeStyle = lineColor; // Set the line color
+  ctx.lineWidth = 2; // Set the line width
+  ctx.stroke();
 
   for (let agent of agents) {
     ctx.save();
@@ -305,6 +353,7 @@ function draw() {
       ctx.moveTo(4, 0);
       ctx.lineTo(-4, -2);
       ctx.lineTo(-4, 2);
+      ctx.fillStyle = "#C1C067";
       ctx.fill();
     }
     ctx.restore();
@@ -312,7 +361,7 @@ function draw() {
 
   ctx.save();
   {
-    ctx.fillStyle = "blue";
+    ctx.fillStyle = "#D2DD9C";
     ctx.beginPath();
     ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
     ctx.fill();
