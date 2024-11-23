@@ -11,7 +11,9 @@ let params = {
   field_of_view: 2.5,
   cohesion_factor: 5,
   alignment_factor: 150,
-  number_boids: 100
+  number_boids: 200,
+  trailMaxLength: 100000,
+  target: false
 };
 
 let windSpeed,
@@ -20,14 +22,32 @@ let windSpeed,
   hueRotation;
 
 let lineColor = "#8F851C";
-let target = [canvas.width / 10, canvas.height / 10];
 
 // there is a canvas
 const canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext("2d");
 
+const dpr = window.devicePixelRatio;
+const rect = canvas.getBoundingClientRect();
+
+// Set the "actual" size of the canvas
+canvas.width = rect.width * dpr;
+canvas.height = rect.height * dpr;
+
+// Scale the context to ensure correct drawing operations
+ctx.scale(dpr, dpr);
+
+// Set the "drawn" size of the canvas
+canvas.style.width = `${rect.width}px`;
+canvas.style.height = `${rect.height}px`;
+
+
+let target = [canvas.width / 10, canvas.height / 10];
+
 
 const ws = new WebSocket('ws://localhost:8080');
+
+console.log(canvas.width)
 
 
 let agents = [];
@@ -35,10 +55,12 @@ let agents = [];
 // Init Agents
 for (let i = 0; i < params.number_boids; i++) {
   let agent = {
-    pos: [Math.random() * canvas.width, Math.random() * canvas.height],
+    // pos: [Math.random() * canvas.width, Math.random() * canvas.height],
+    pos: [canvas.width, 0],
     orient: Math.random() * 2 * Math.PI,
     vel: [0, 0],
-    acc: [0, 0]
+    acc: [0, 0],
+    trail: []
   };
   agents.push(agent);
 }
@@ -327,15 +349,20 @@ function animate() {
     // seek/flee:
     let desired = [0, 0];
     // desired_velocity = normalize (position - target) * max_speed
-    vec2.sub(desired, target, agent.pos);
-    vec2_relativewrap(desired, desired, canvas.width, canvas.height);
-    let distance = vec2.length(desired);
-    vec2.normalize(desired, desired);
-    vec2.scale(
-      desired,
-      desired,
-      -params.antitarget_factor / (distance * distance)
-    );
+
+    if(params.target) {
+      vec2.sub(desired, target, agent.pos);
+      vec2_relativewrap(desired, desired, canvas.width, canvas.height);
+      let distance = vec2.length(desired);
+      vec2.normalize(desired, desired);
+      vec2.scale(
+        desired,
+        desired,
+        -params.antitarget_factor / (distance * distance)
+      );
+    }
+
+    
     //steering = desired_velocity - velocity
     let steering = [0, 0];
     vec2.sub(steering, desired, agent.vel);
@@ -347,10 +374,10 @@ function animate() {
     vec2.add(agent.acc, agent.acc, force);
 
     // wind force
-    if (windDirection) {
-      let windForce = calculateWindForce();
-      vec2.add(agent.acc, agent.acc, windForce);
-    }
+    // if (windDirection) {
+    //   let windForce = calculateWindForce();
+    //   vec2.add(agent.acc, agent.acc, windForce);
+    // }
 
 
     vec2_maxlength(agent.acc, agent.acc, params.acceleration_limit);
@@ -372,6 +399,7 @@ function animate() {
   }
 }
 
+
 // draw:
 function draw() {
   // update the scene:
@@ -384,39 +412,73 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw the vertical line
-  ctx.beginPath();
-  ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  ctx.strokeStyle = lineColor; // Set the line color
-  ctx.lineWidth = 2; // Set the line width
-  ctx.stroke();
+  // ctx.beginPath();
+  // ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
+  // ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
+  // ctx.strokeStyle = lineColor; // Set the line color
+  // ctx.lineWidth = 2; // Set the line width
+  // ctx.stroke();
 
   for (let agent of agents) {
 
+    // draw trail
+    agent.trail.push([...agent.pos]);
+
+
+    // Limit trail length to avoid memory issues
+    if (agent.trail.length > params.trailMaxLength) { // Adjust length as needed
+      agent.trail.shift();
+    }
+    
+
+    // Draw the trail
+    ctx.beginPath();
+    for (let i = 0; i < agent.trail.length - 1; i++) {
+      const [x1, y1] = agent.trail[i];
+      const [x2, y2] = agent.trail[i + 1];
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+
+      if(distance > 2) continue;
+   
+      ctx.moveTo(x1, y1); 
+      ctx.lineTo(x2, y2);
+    }
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Semi-transparent white
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+
     // draw boid
+    // ctx.save();
+    // {
+    //   ctx.translate(agent.pos[0], agent.pos[1]);
+    //   ctx.rotate(agent.orient);
+      
+    //   ctx.beginPath();
+    //   ctx.moveTo(4, 0);
+    //   ctx.lineTo(-4, -2);
+    //   ctx.lineTo(-4, 2);
+    //   ctx.fillStyle = "#C1C067";
+    //   ctx.fill();
+    // }
+    // ctx.restore();
+
+  }
+
+  if(params.target) {
+    // draw target
     ctx.save();
     {
-      ctx.translate(agent.pos[0], agent.pos[1]);
-      ctx.rotate(agent.orient);
-      
+      ctx.fillStyle = "#D2DD9C";
       ctx.beginPath();
-      ctx.moveTo(4, 0);
-      ctx.lineTo(-4, -2);
-      ctx.lineTo(-4, 2);
-      ctx.fillStyle = "#C1C067";
+      ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
       ctx.fill();
     }
     ctx.restore();
   }
-
-  // ctx.save();
-  // {
-  //   ctx.fillStyle = "#D2DD9C";
-  //   ctx.beginPath();
-  //   ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
-  //   ctx.fill();
-  // }
-  // ctx.restore();
 
   window.requestAnimationFrame(draw);
 }
