@@ -19,6 +19,32 @@ let windSpeed,
   temp,
   hueRotation;
 
+let lineColor = "#8F851C";
+let target = [canvas.width / 10, canvas.height / 10];
+
+// there is a canvas
+const canvas = document.getElementById("mycanvas");
+const ctx = canvas.getContext("2d");
+
+
+const ws = new WebSocket('ws://localhost:8080');
+
+
+let agents = [];
+
+// Init Agents
+for (let i = 0; i < params.number_boids; i++) {
+  let agent = {
+    pos: [Math.random() * canvas.width, Math.random() * canvas.height],
+    orient: Math.random() * 2 * Math.PI,
+    vel: [0, 0],
+    acc: [0, 0]
+  };
+  agents.push(agent);
+}
+
+
+
 // WEATHER
 
 async function getWindData(city) {
@@ -72,9 +98,6 @@ function calculateWindForce() {
 // gui.add(params, "cohesion_factor", 0.01, 10);
 // gui.add(params, "alignment_factor", 0.01, 100);
 
-
-const ws = new WebSocket('ws://localhost:8080');
-
 function sendToMax(data) {
   changeLineColor(100)
   if (ws.readyState === WebSocket.OPEN) {
@@ -95,15 +118,6 @@ function changeLineColor(s) {
 }
 
 
-
-
-
-// there is a canvas
-let canvas = document.getElementById("mycanvas");
-const ctx = canvas.getContext("2d");
-
-let lineColor = "#8F851C";
-
 let resize = function () {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -111,7 +125,6 @@ let resize = function () {
 window.addEventListener("resize", resize);
 resize();
 
-let target = [canvas.width / 10, canvas.height / 10];
 
 // pointerdown:
 canvas.addEventListener("pointerdown", function (event) {
@@ -148,17 +161,13 @@ window.addEventListener("keydown", (event) => {});
 // wrap an { x, y } position around canvas width/height
 function donut(agent) {
   if (agent.pos[0] > canvas.width) {
-    outOfBounds(agent);
     agent.pos[0] -= canvas.width;
   } else if (agent.pos[0] < 0) {
-    outOfBounds(agent);
     agent.pos[0] += canvas.width;
   }
   if (agent.pos[1] > canvas.height) {
-    outOfBounds(agent);
     agent.pos[1] -= canvas.height;
   } else if (agent.pos[1] < 0) {
-    outOfBounds(agent);
     agent.pos[1] += canvas.height;
   }
   return agent.pos;
@@ -187,12 +196,6 @@ function centerLineCollision(agent, index) {
   previousPositions[index] = currentX;
 }
 
-function outOfBounds(agent) {
-  let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1] };
-
-  // sendToMax(message);
-  
-}
 
 function vec2_maxlength(out, v, limit) {
   const len = vec2.length(v);
@@ -216,16 +219,7 @@ function vec2_relativewrap(out, v, w, h) {
 
 //////////////
 
-let agents = [];
-for (let i = 0; i < params.number_boids; i++) {
-  let agent = {
-    pos: [Math.random() * canvas.width, Math.random() * canvas.height],
-    orient: Math.random() * 2 * Math.PI,
-    vel: [0, 0],
-    acc: [0, 0]
-  };
-  agents.push(agent);
-}
+
 
 let previousPositions = agents.map(agent => agent.pos[0]); // Stores only x-coordinates
 
@@ -398,11 +392,13 @@ function draw() {
   ctx.stroke();
 
   for (let agent of agents) {
+
+    // draw boid
     ctx.save();
     {
       ctx.translate(agent.pos[0], agent.pos[1]);
       ctx.rotate(agent.orient);
-
+      
       ctx.beginPath();
       ctx.moveTo(4, 0);
       ctx.lineTo(-4, -2);
@@ -413,14 +409,14 @@ function draw() {
     ctx.restore();
   }
 
-  ctx.save();
-  {
-    ctx.fillStyle = "#D2DD9C";
-    ctx.beginPath();
-    ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  ctx.restore();
+  // ctx.save();
+  // {
+  //   ctx.fillStyle = "#D2DD9C";
+  //   ctx.beginPath();
+  //   ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
+  //   ctx.fill();
+  // }
+  // ctx.restore();
 
   window.requestAnimationFrame(draw);
 }
