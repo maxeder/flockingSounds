@@ -11,8 +11,8 @@ let params = {
   field_of_view: 2.5,
   cohesion_factor: 5,
   alignment_factor: 150,
-  number_boids: 200,
-  trailMaxLength: 100000,
+  number_boids: 100,
+  trailMaxLength: 1000,
   target: false
 };
 
@@ -399,37 +399,34 @@ function animate() {
   }
 }
 
+let drawCount = 0;
 
-// draw:
+let selectedAgents = [];
+
 function draw() {
   // update the scene:
   animate();
 
-  // 	clear screen
+  // clear screen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#1E1E21";
   ctx.filter = `hue-rotate(${hueRotation}deg)`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw the vertical line
-  // ctx.beginPath();
-  // ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  // ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  // ctx.strokeStyle = lineColor; // Set the line color
-  // ctx.lineWidth = 2; // Set the line width
-  // ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
 
+  // Draw trails and boids
   for (let agent of agents) {
-
-    // draw trail
     agent.trail.push([...agent.pos]);
 
-
     // Limit trail length to avoid memory issues
-    if (agent.trail.length > params.trailMaxLength) { // Adjust length as needed
+    if (agent.trail.length > params.trailMaxLength) {
       agent.trail.shift();
     }
-    
+
+    // Assign a color to each agent (static or dynamic)
+    // const color = agent.color || `hsl(${agent.speed * 360}, 70%, 50%)`;
+    // agent.color = color; // Save color if not already assigned
 
     // Draw the trail
     ctx.beginPath();
@@ -439,46 +436,63 @@ function draw() {
 
       const dx = x2 - x1;
       const dy = y2 - y1;
-      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (Math.sqrt(dx * dx + dy * dy) > 2) continue;
 
-      if(distance > 2) continue;
-   
-      ctx.moveTo(x1, y1); 
+      ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
     }
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Semi-transparent white
+    // ctx.strokeStyle = lineColor; // Use the assigned color
     ctx.lineWidth = 2;
     ctx.stroke();
-
-
-    // draw boid
-    // ctx.save();
-    // {
-    //   ctx.translate(agent.pos[0], agent.pos[1]);
-    //   ctx.rotate(agent.orient);
-      
-    //   ctx.beginPath();
-    //   ctx.moveTo(4, 0);
-    //   ctx.lineTo(-4, -2);
-    //   ctx.lineTo(-4, 2);
-    //   ctx.fillStyle = "#C1C067";
-    //   ctx.fill();
-    // }
-    // ctx.restore();
-
   }
 
-  if(params.target) {
-    // draw target
-    ctx.save();
-    {
-      ctx.fillStyle = "#D2DD9C";
-      ctx.beginPath();
-      ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
-      ctx.fill();
+  // Select 3 random agents
+
+  if(Math.random() >= 0.97) {
+    selectedAgents = [];
+    while (selectedAgents.length < 3) {
+      const randomIndex = Math.floor(Math.random() * agents.length);
+      if (!selectedAgents.includes(agents[randomIndex])) {
+        selectedAgents.push(agents[randomIndex]);
+      }
     }
-    ctx.restore();
   }
+
+
+  drawCount++;
+
+  // Draw rectangles and their speeds
+  ctx.lineWidth = 2;
+  const rectangleCenters = [];
+
+  for (const agent of agents) {
+    const [x, y] = agent.pos;
+    const speed = Math.sqrt(agent.vel[0] ** 2 + agent.vel[1] ** 2).toFixed(2);
+
+    // Draw green rectangle around the boid
+    const rectSize = 20; // Adjust size as needed
+    ctx.strokeRect(x - rectSize / 2, y - rectSize / 2, rectSize, rectSize);
+
+    // Save center position for line connection
+    rectangleCenters.push([x, y]);
+
+
+  }
+
+  // Connect rectangles with a single line
+  ctx.beginPath();
+  for (let i = 0; i < rectangleCenters.length; i++) {
+    const [x, y] = rectangleCenters[i];
+    if (i === 0) {
+      ctx.moveTo(x, y); // Start at the first rectangle
+    } else {
+      ctx.lineTo(x, y); // Connect to the next rectangle
+    }
+  }
+  ctx.closePath(); // Optionally close the path to form a triangle
+  // ctx.strokeStyle = "green";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 
   window.requestAnimationFrame(draw);
 }
