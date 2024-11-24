@@ -28,3 +28,9 @@ html {
   position: absolute;
   font-size: 20pt;
 }
+
+
+canvas {
+  height: 100vh;
+  width: 100vw;
+}

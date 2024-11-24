@@ -11,7 +11,8 @@ let params = {
   field_of_view: 2.5,
   cohesion_factor: 5,
   alignment_factor: 150,
-  number_boids: 100
+  number_boids: 100,
+
 };
 
 let windSpeed,
@@ -19,12 +20,30 @@ let windSpeed,
   temp,
   hueRotation;
 
+
+let green = "rgba(0,200,0,0.5)";
 let lineColor = "#8F851C";
-let target = [canvas.width / 10, canvas.height / 10];
 
 // there is a canvas
 const canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext("2d");
+
+const dpr = window.devicePixelRatio;
+const rect = canvas.getBoundingClientRect();
+
+// Set the "actual" size of the canvas
+canvas.width = rect.width * dpr;
+canvas.height = rect.height * dpr;
+
+// Scale the context to ensure correct drawing operations
+ctx.scale(dpr, dpr);
+
+// Set the "drawn" size of the canvas
+canvas.style.width = `${rect.width}px`;
+canvas.style.height = `${rect.height}px`;
+
+
+let target = [canvas.width / 10, canvas.height / 10];
 
 
 const ws = new WebSocket('ws://localhost:8080');
@@ -347,10 +366,10 @@ function animate() {
     vec2.add(agent.acc, agent.acc, force);
 
     // wind force
-    if (windDirection) {
-      let windForce = calculateWindForce();
-      vec2.add(agent.acc, agent.acc, windForce);
-    }
+    // if (windDirection) {
+    //   let windForce = calculateWindForce();
+    //   vec2.add(agent.acc, agent.acc, windForce);
+    // }
 
 
     vec2_maxlength(agent.acc, agent.acc, params.acceleration_limit);
@@ -372,6 +391,32 @@ function animate() {
   }
 }
 
+let selectedAgents = [];
+let selected = false;
+const selectedCount = 5;
+
+function randomSelectFocusedBoids() {
+
+  selectedAgents = []
+
+  for (let index = 0; index < selectedCount; index++) {
+    const randomIndex = Math.floor(Math.random() * agents.length);
+    if (!selectedAgents.includes(agents[randomIndex])) {
+      selectedAgents.push(agents[randomIndex]);
+    }
+    
+  }
+  // while (selectedAgents.length < 3) {
+  //   const randomIndex = Math.floor(Math.random() * agents.length);
+  //   if (!selectedAgents.includes(agents[randomIndex])) {
+  //     selectedAgents.push(agents[randomIndex]);
+  //   }
+  // }
+};
+
+randomSelectFocusedBoids();
+
+console.log(selectedAgents)
 // draw:
 function draw() {
   // update the scene:
@@ -380,16 +425,22 @@ function draw() {
   // 	clear screen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#1E1E21";
-  ctx.filter = `hue-rotate(${hueRotation}deg)`;
+  // temp color change
+  // ctx.filter = `hue-rotate(${hueRotation}deg)`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw the vertical line
-  ctx.beginPath();
-  ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  ctx.strokeStyle = lineColor; // Set the line color
-  ctx.lineWidth = 2; // Set the line width
-  ctx.stroke();
+  // ctx.beginPath();
+  // ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
+  // ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
+  // ctx.strokeStyle = lineColor; // Set the line color
+  // ctx.lineWidth = 2; // Set the line width
+  // ctx.stroke();
+
+  console.log(selectedAgents.length)
+  if(Math.random() > 0.8 && selectedAgents.length == selectedCount) {
+    randomSelectFocusedBoids();
+  }
 
   for (let agent of agents) {
 
@@ -403,12 +454,38 @@ function draw() {
       ctx.moveTo(4, 0);
       ctx.lineTo(-4, -2);
       ctx.lineTo(-4, 2);
-      ctx.fillStyle = "#C1C067";
+      // ctx.fillStyle = "#C1C067";
+      ctx.fillStyle ="rgba(255, 255, 255, 0.3)";
       ctx.fill();
     }
     ctx.restore();
   }
 
+
+  // green selection windows
+  ctx.strokeStyle = green;
+  ctx.lineWidth = 1;
+
+  for (const agent of selectedAgents) {
+    const [x, y] = agent.pos;
+
+    // Draw green rectangle around the boid
+    const rectSize = 20; // Adjust size as needed
+    ctx.strokeRect(x - rectSize / 2, y - rectSize / 2, rectSize, rectSize);
+
+    // Display speed below the rectangle
+    ctx.fillStyle = green;
+    ctx.font = "10px Arial";
+    ctx.fillText(`x${Math.round(x)} y${Math.round(y)}`, x - rectSize / 2, y + rectSize);
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(selectedAgents[0].pos[0], selectedAgents[0].pos[1]);
+  ctx.lineTo(selectedAgents[1].pos[0], selectedAgents[1].pos[1]);
+  ctx.lineTo(selectedAgents[2].pos[0], selectedAgents[2].pos[1]);
+  ctx.closePath(); // Optionally close the path to form a triangle
+  ctx.strokeStyle = "green";
+  ctx.stroke();
   // ctx.save();
   // {
   //   ctx.fillStyle = "#D2DD9C";
