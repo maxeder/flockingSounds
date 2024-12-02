@@ -5,13 +5,13 @@ let params = {
   speed_limit: 1,
   acceleration_limit: 0.1,
   collision_distance: 30,
-  collision_factor: 700,
-  wander_factor: 300,
+  collision_factor: 14000,
+  wander_factor: 100,
   antitarget_factor: 400000,
   field_of_view: 2.5,
   cohesion_factor: 5,
   alignment_factor: 150,
-  number_boids: 200,
+  number_boids: 2,
   trailMaxLength: 100000,
   target: false
 };
@@ -27,7 +27,8 @@ let lineColor = "#8F851C";
 const canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext("2d");
 
-const dpr = window.devicePixelRatio;
+console.log("dpr" + window.devicePixelRatio);
+const dpr = window.devicePixelRatio * 2;
 const rect = canvas.getBoundingClientRect();
 
 // Set the "actual" size of the canvas
@@ -40,6 +41,7 @@ ctx.scale(dpr, dpr);
 // Set the "drawn" size of the canvas
 canvas.style.width = `${rect.width}px`;
 canvas.style.height = `${rect.height}px`;
+
 
 
 let target = [canvas.width / 10, canvas.height / 10];
@@ -399,6 +401,8 @@ function animate() {
   }
 }
 
+let frameCount = 0,
+  frameControlledFrequ = 10;
 
 // draw:
 function draw() {
@@ -406,10 +410,10 @@ function draw() {
   animate();
 
   // 	clear screen
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#1E1E21";
-  ctx.filter = `hue-rotate(${hueRotation}deg)`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // ctx.fillStyle = "#1E1E21";
+  // ctx.filter = `hue-rotate(${hueRotation}deg)`;
+  // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw the vertical line
   // ctx.beginPath();
@@ -421,52 +425,76 @@ function draw() {
 
   for (let agent of agents) {
 
-    // draw trail
-    agent.trail.push([...agent.pos]);
+    // // draw trail
+    // agent.trail.push([...agent.pos]);
 
 
-    // Limit trail length to avoid memory issues
-    if (agent.trail.length > params.trailMaxLength) { // Adjust length as needed
-      agent.trail.shift();
-    }
+    // // Limit trail length to avoid memory issues
+    // if (agent.trail.length > params.trailMaxLength) { // Adjust length as needed
+    //   agent.trail.shift();
+    // }
     
 
     // Draw the trail
-    ctx.beginPath();
-    for (let i = 0; i < agent.trail.length - 1; i++) {
-      const [x1, y1] = agent.trail[i];
-      const [x2, y2] = agent.trail[i + 1];
+    // ctx.beginPath();
+    // for (let i = 0; i < agent.trail.length - 1; i++) {
+    //   const [x1, y1] = agent.trail[i];
+    //   const [x2, y2] = agent.trail[i + 1];
 
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      let distance = Math.sqrt(dx * dx + dy * dy);
+    //   const dx = x2 - x1;
+    //   const dy = y2 - y1;
+    //   let distance = Math.sqrt(dx * dx + dy * dy);
 
-      if(distance > 2) continue;
+    //   if(distance > 2) continue;
    
-      ctx.moveTo(x1, y1); 
-      ctx.lineTo(x2, y2);
-    }
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Semi-transparent white
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    //   ctx.moveTo(x1, y1); 
+    //   ctx.lineTo(x2, y2);
+    // }
+    // ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Semi-transparent white
+    // ctx.lineWidth = 2;
+    // ctx.stroke();
+
+    
 
 
-    // draw boid
+    // // draw boid
     // ctx.save();
     // {
-    //   ctx.translate(agent.pos[0], agent.pos[1]);
-    //   ctx.rotate(agent.orient);
+    //   // ctx.translate(agent.pos[0], agent.pos[1]);
+    //   // ctx.rotate(agent.orient);
+      
+    //   // ctx.beginPath();
+
+    //   // ctx.moveTo(4, 0);
+    //   // ctx.lineTo(-4, -2);
+    //   // ctx.lineTo(-4, 2);
+    //   // ctx.fillStyle = "#C1C067";
+    //   // ctx.fill();
       
     //   ctx.beginPath();
-    //   ctx.moveTo(4, 0);
-    //   ctx.lineTo(-4, -2);
-    //   ctx.lineTo(-4, 2);
-    //   ctx.fillStyle = "#C1C067";
+    //   ctx.arc(agent.pos[0], agent.pos[1], 2, 0, Math.PI * 2, false);
+    //   ctx.fillStyle = 'rgba(20,20,20,0.6)';
     //   ctx.fill();
+
     // }
     // ctx.restore();
 
   }
+
+
+  const hue = frameCount % 360; 
+
+  if(frameCount % frameControlledFrequ == 0) {
+    // draw lines between boids
+    ctx.beginPath();
+    ctx.moveTo(agents[0].pos[0], agents[0].pos[1]);
+    ctx.lineTo(agents[1].pos[0], agents[1].pos[1]);
+    // ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Line color with transparency
+     ctx.strokeStyle = `hsla(${hue}, 85%, 70%, 0.01)`
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
 
   if(params.target) {
     // draw target
@@ -479,6 +507,8 @@ function draw() {
     }
     ctx.restore();
   }
+
+  frameCount++;
 
   window.requestAnimationFrame(draw);
 }
