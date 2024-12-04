@@ -12,16 +12,21 @@ let params = {
   cohesion_factor: 5,
   alignment_factor: 150,
   number_boids: 200,
-  trailMaxLength: 100000,
-  target: false
+  trailMaxLength: 10000,
+  target: false,
+  windFactor: 1
 };
 
 let windSpeed,
   windDirection,
   temp,
-  hueRotation;
+  hueRotation,
+  windSpeedFactor = 1;
 
-let lineColor = "#8F851C";
+let lineColor = "#0E0AAF";
+
+let windVector;
+let frameCount = 0;
 
 // there is a canvas
 const canvas = document.getElementById("mycanvas");
@@ -84,13 +89,14 @@ async function getWindData(city) {
       windSpeed = data.wind.speed; // Wind speed in m/s
       windDirection = data.wind.deg; // Wind direction in degrees
 
+
+      windVector = p5.Vector.fromAngle(radians(windDirection)).mult(windSpeed * windSpeedFactor);
+
       temp = data.main.temp;
       let clampedHue = Math.max(-5, Math.min(20, temp));
       // Map the range -5 to 20 to 0° to 360°
       hueRotation = ((clampedHue + 5) / 25) * 360;
 
-      windSpeed = 100
-      windDirection = 1
 
       console.log(`Wind Speed: ${windSpeed} m/s`);
       console.log(`Wind Direction: ${windDirection}°`);
@@ -133,9 +139,9 @@ function sendToMax(data) {
 
 
 function changeLineColor(s) {
-  lineColor = "#D3EAB0";
+  lineColor = "#1813F6";
   setTimeout(() => {
-    lineColor = "#8F851C";
+    lineColor = "#0E0AAF";
   }, s); 
 }
 
@@ -346,6 +352,17 @@ function animate() {
     let walkforce = vec2.random([0, 0], Math.random() * params.wander_factor);
     vec2.add(force, force, walkforce);
 
+
+    if (frameCount % 3 === 0) {
+      let walkforce = vec2.random([0, 0], Math.random() * params.wander_factor);
+      vec2.add(force, force, walkforce);
+
+      if(windVector !== undefined) {
+        let individualWindForce = vec2.random([0, 0], Math.random() * params.windFactor);
+        vec2.add(force, force, individualWindForce);
+      }
+    }
+
     // seek/flee:
     let desired = [0, 0];
     // desired_velocity = normalize (position - target) * max_speed
@@ -397,6 +414,8 @@ function animate() {
     agent.orient = Math.atan2(agent.vel[1], agent.vel[0]);
     //agent.orient = vec2.angle(agent.vel, [1, 0]);
   }
+
+  frameCount++;
 }
 
 
@@ -412,14 +431,16 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw the vertical line
-  // ctx.beginPath();
-  // ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  // ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  // ctx.strokeStyle = lineColor; // Set the line color
-  // ctx.lineWidth = 2; // Set the line width
-  // ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
+  ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
+  ctx.strokeStyle = lineColor; // Set the line color
+  ctx.lineWidth = 2; // Set the line width
+  ctx.stroke();
 
-  for (let agent of agents) {
+  for (let [index, agent] of agents.entries()) {
+
+    centerLineCollision(agent, index);
 
     // draw trail
     agent.trail.push([...agent.pos]);
@@ -452,19 +473,20 @@ function draw() {
 
 
     // draw boid
-    // ctx.save();
-    // {
-    //   ctx.translate(agent.pos[0], agent.pos[1]);
-    //   ctx.rotate(agent.orient);
+    ctx.save();
+    {
+      ctx.translate(agent.pos[0], agent.pos[1]);
+      ctx.rotate(agent.orient);
       
-    //   ctx.beginPath();
-    //   ctx.moveTo(4, 0);
-    //   ctx.lineTo(-4, -2);
-    //   ctx.lineTo(-4, 2);
-    //   ctx.fillStyle = "#C1C067";
-    //   ctx.fill();
-    // }
-    // ctx.restore();
+      ctx.beginPath();
+      ctx.moveTo(4, 0);
+      ctx.lineTo(-4, -2);
+      ctx.lineTo(-4, 2);
+      // ctx.fillStyle = "#C1C067";
+      ctx.fillStyle = lineColor;
+      ctx.fill();
+    }
+    ctx.restore();
 
   }
 
@@ -484,3 +506,4 @@ function draw() {
 }
 
 draw();
+
