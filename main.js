@@ -2,19 +2,24 @@ import {vec2} from 'gl-matrix';
 
 // an container of parameters to control:
 let params = {
-  speed_limit: 1,
+  speed_limit: 0.8,
   acceleration_limit: 0.1,
   collision_distance: 30,
   collision_factor: 700,
-  wander_factor: 300,
+  wander_factor: 200,
   antitarget_factor: 400000,
   field_of_view: 2.5,
   cohesion_factor: 5,
   alignment_factor: 150,
-  number_boids: 200,
-  trailMaxLength: 10000,
+  number_boids: 10,
+  trailMaxLength: 100,
   target: false,
-  windFactor: 1
+  windFactor: 1,
+  boidManagerFrequency: 100,
+  trailOpacity: 0.5,
+  boidOpacity: 0.8,
+  fadingSpeed: 0.02,
+  populationOverflow: 10
 };
 
 let windSpeed,
@@ -31,6 +36,7 @@ let frameCount = 0;
 // there is a canvas
 const canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = true;
 
 const dpr = window.devicePixelRatio;
 const rect = canvas.getBoundingClientRect();
@@ -50,9 +56,7 @@ canvas.style.height = `${rect.height}px`;
 let target = [canvas.width / 10, canvas.height / 10];
 
 
-const ws = new WebSocket('ws://localhost:8080');
-
-console.log(canvas.width)
+const ws = new WebSocket('ws://localhost:8090');
 
 
 let agents = [];
@@ -65,7 +69,10 @@ for (let i = 0; i < params.number_boids; i++) {
     orient: Math.random() * 2 * Math.PI,
     vel: [0, 0],
     acc: [0, 0],
-    trail: []
+    trail: [],
+    opacity: params.boidOpacity,
+    windEffect: Math.random(),
+    fading: false
   };
   agents.push(agent);
 }
@@ -90,12 +97,12 @@ async function getWindData(city) {
       windDirection = data.wind.deg; // Wind direction in degrees
 
 
-      windVector = p5.Vector.fromAngle(radians(windDirection)).mult(windSpeed * windSpeedFactor);
+      // windVector = p5.Vector.fromAngle(radians(windDirection)).mult(windSpeed * windSpeedFactor);
 
       temp = data.main.temp;
-      let clampedHue = Math.max(-5, Math.min(20, temp));
-      // Map the range -5 to 20 to 0° to 360°
-      hueRotation = ((clampedHue + 5) / 25) * 360;
+      // let clampedHue = Math.max(-5, Math.min(20, temp));
+      // // Map the range -5 to 20 to 0° to 360°
+      // hueRotation = ((clampedHue + 5) / 25) * 360;
 
 
       console.log(`Wind Speed: ${windSpeed} m/s`);
@@ -109,8 +116,8 @@ async function getWindData(city) {
 
 getWindData('Toronto');
 
-function calculateWindForce() {
-  return [Math.cos(windDirection) * windSpeed, Math.sin(windDirection) * windSpeed];
+function calculateWindForce(agentWindEffect) {
+  return [Math.cos(windDirection) * windSpeed * agentWindEffect, Math.sin(windDirection) * windSpeed * agentWindEffect];
 }
 
 // // create the interface:
@@ -391,10 +398,10 @@ function animate() {
     vec2.add(agent.acc, agent.acc, force);
 
     // wind force
-    // if (windDirection) {
-    //   let windForce = calculateWindForce();
-    //   vec2.add(agent.acc, agent.acc, windForce);
-    // }
+    if (windDirection) {
+      let windForce = calculateWindForce(agent.windEffect);
+      vec2.add(agent.acc, agent.acc, windForce);
+    }
 
 
     vec2_maxlength(agent.acc, agent.acc, params.acceleration_limit);
@@ -415,6 +422,13 @@ function animate() {
     //agent.orient = vec2.angle(agent.vel, [1, 0]);
   }
 
+
+  if (frameCount % params.boidManagerFrequency === 0) {
+    if(Math.random() < 0.5) {
+      manageBoids();
+    }
+  }
+
   frameCount++;
 }
 
@@ -426,8 +440,8 @@ function draw() {
 
   // 	clear screen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#1E1E21";
-  ctx.filter = `hue-rotate(${hueRotation}deg)`;
+  ctx.fillStyle = "#000000";
+  // ctx.filter = `hue-rotate(${hueRotation}deg)`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw the vertical line
@@ -439,6 +453,17 @@ function draw() {
   ctx.stroke();
 
   for (let [index, agent] of agents.entries()) {
+
+
+    if (agent.fading) {
+      agent.opacity -= params.fadingSpeed; // Reduce opacity gradually
+      if (agent.opacity <= 0) {
+        // Remove fully faded boid
+        agents.splice(index, 1);
+        previousPositions.splice(index, 1);
+        continue;
+      }
+    }
 
     centerLineCollision(agent, index);
 
@@ -467,7 +492,10 @@ function draw() {
       ctx.moveTo(x1, y1); 
       ctx.lineTo(x2, y2);
     }
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Semi-transparent white
+    // ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; 
+
+    let lineOpacity = mapVals(agent.opacity, 0, 1, 0, params.trailOpacity);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${lineOpacity})`; 
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -475,15 +503,19 @@ function draw() {
     // draw boid
     ctx.save();
     {
-      ctx.translate(agent.pos[0], agent.pos[1]);
-      ctx.rotate(agent.orient);
+      // ctx.translate(agent.pos[0], agent.pos[1]);
+      // ctx.rotate(agent.orient);
       
       ctx.beginPath();
-      ctx.moveTo(4, 0);
-      ctx.lineTo(-4, -2);
-      ctx.lineTo(-4, 2);
+      // ctx.moveTo(4, 0);
+      // ctx.lineTo(-4, -2);
+      // ctx.lineTo(-4, 2);
       // ctx.fillStyle = "#C1C067";
-      ctx.fillStyle = lineColor;
+
+      ctx.arc(agent.pos[0], agent.pos[1], 4, 0, 2*Math.PI);
+
+
+      ctx.fillStyle = `rgba(14,10,180,${agent.opacity})`;
       ctx.fill();
     }
     ctx.restore();
@@ -504,6 +536,39 @@ function draw() {
 
   window.requestAnimationFrame(draw);
 }
+
+
+
+
+function manageBoids() {
+  const action = Math.random() < 0.5 ? 'add' : 'remove';
+
+  if (action === 'add' && agents.length <= (params.number_boids + params.populationOverflow)) {
+    let newBoid = {
+      pos: [Math.random() * canvas.width, Math.random() * canvas.height],
+      orient: Math.random()*(2*Math.PI),
+      vel: [0, 0],
+      acc: [0, 0],
+      trail: [],
+      opacity: 1,
+      fading: false
+    };
+    agents.push(newBoid);
+    previousPositions.push(newBoid.pos.x);
+    console.log("Added a boid. Total boids: " + agents.length + "pos: " + newBoid.pos);
+  } else if (action === 'remove' && agents.length > 1) {
+    const index = Math.floor(Math.random() * agents.length);
+    agents[index].fading = true; // Flag the boid for fading out
+    console.log("Fading out a boid. Total boids: " + agents.length);
+  }
+}
+
+
+function mapVals(value, start1, stop1, start2, stop2) {
+  return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+}
+
+
 
 draw();
 
