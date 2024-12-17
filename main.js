@@ -6,16 +6,16 @@ let params = {
   acceleration_limit: 0.1,
   collision_distance: 30,
   collision_factor: 700,
-  wander_factor: 200,
+  wander_factor: 110,
   antitarget_factor: 400000,
   field_of_view: 2.5,
-  cohesion_factor: 5,
-  alignment_factor: 150,
-  number_boids: 10,
-  trailMaxLength: 100,
+  cohesion_factor: 4,
+  alignment_factor: 140,
+  number_boids: 70,
+  trailMaxLength: 1800,
   target: false,
   windFactor: 1,
-  boidManagerFrequency: 100,
+  boidManagerFrequency: 400,
   trailOpacity: 0.5,
   boidOpacity: 0.8,
   fadingSpeed: 0.02,
@@ -82,7 +82,7 @@ for (let i = 0; i < params.number_boids; i++) {
 // WEATHER
 
 async function getWindData(city) {
-  const apiKey = '9b25d3712337384ddf7db3c1416cf493'; // Replace with your OpenWeather API key
+  const apiKey = 'XXX'; // Replace with your OpenWeather API key
   const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
 
   try {
