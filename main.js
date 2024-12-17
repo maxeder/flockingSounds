@@ -11,11 +11,10 @@ let params = {
   field_of_view: 2.5,
   cohesion_factor: 5,
   alignment_factor: 150,
-  number_boids: 10,
-  trailMaxLength: 100,
+  number_boids: 30,
+  trailMaxLength: 2200,
   target: false,
   windFactor: 1,
-  boidManagerFrequency: 100,
   trailOpacity: 0.5,
   boidOpacity: 0.8,
   fadingSpeed: 0.02,
@@ -82,7 +81,7 @@ for (let i = 0; i < params.number_boids; i++) {
 // WEATHER
 
 async function getWindData(city) {
-  const apiKey = '9b25d3712337384ddf7db3c1416cf493'; // Replace with your OpenWeather API key
+  const apiKey = 'XXX'; // Replace with your OpenWeather API key
   const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
 
   try {
@@ -120,37 +119,26 @@ function calculateWindForce(agentWindEffect) {
   return [Math.cos(windDirection) * windSpeed * agentWindEffect, Math.sin(windDirection) * windSpeed * agentWindEffect];
 }
 
-// // create the interface:
-// let gui = new dat.GUI({ name: "My GUI", closed: true });
-// // add a slider for params.speed, in the range of 0 to 10, stepping in 1's
-// gui.add(params, "speed_limit", 0, 100);
-// gui.add(params, "acceleration_limit", 0, 1);
-// gui.add(params, "collision_distance", 1, 500);
-// gui.add(params, "collision_factor", 0, 10000);
-// gui.add(params, "wander_factor", 0, 100);
-// gui.add(params, "antitarget_factor", -10000000, 10000000);
-// gui.add(params, "field_of_view", 0, Math.PI);
-// gui.add(params, "cohesion_factor", 0.01, 10);
-// gui.add(params, "alignment_factor", 0.01, 100);
-
-function sendToMax(data) {
-  changeLineColor(100)
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(data));
-    // console.log("Message sent to Max:", data);
-  } else {
-      console.log("WebSocket not ready, waiting for connection...");
-  }
-
-}
 
 
-function changeLineColor(s) {
-  lineColor = "#1813F6";
-  setTimeout(() => {
-    lineColor = "#0E0AAF";
-  }, s); 
-}
+// function sendToMax(data) {
+//   changeLineColor(100)
+//   if (ws.readyState === WebSocket.OPEN) {
+//     ws.send(JSON.stringify(data));
+//     // console.log("Message sent to Max:", data);
+//   } else {
+//       console.log("WebSocket not ready, waiting for connection...");
+//   }
+
+// }
+
+
+// function changeLineColor(s) {
+//   lineColor = "#1813F6";
+//   setTimeout(() => {
+//     lineColor = "#0E0AAF";
+//   }, s); 
+// }
 
 
 let resize = function () {
@@ -161,37 +149,6 @@ window.addEventListener("resize", resize);
 resize();
 
 
-// pointerdown:
-canvas.addEventListener("pointerdown", function (event) {
-  let x = event.clientX;
-  let y = event.clientY;
-  let btn = event.buttons;
-  let t = performance.now();
-
-  target = [x, y];
-});
-
-// pointerup:
-canvas.addEventListener("pointerup", function (event) {
-  let x = event.clientX;
-  let y = event.clientY;
-  let btn = event.buttons;
-  let t = performance.now();
-});
-
-// pointermove:
-canvas.addEventListener("pointermove", function (event) {
-  let x = event.clientX;
-  let y = event.clientY;
-  let btn = event.buttons;
-  let t = performance.now();
-
-  target = [x, y];
-});
-
-// key 'c' to clear all paths
-// key 'm' to toggle moving mode
-window.addEventListener("keydown", (event) => {});
 
 // wrap an { x, y } position around canvas width/height
 function donut(agent) {
@@ -206,29 +163,6 @@ function donut(agent) {
     agent.pos[1] += canvas.height;
   }
   return agent.pos;
-}
-
-function centerLineCollision(agent, index) {
-  const lineX = canvas.width / 2; // X-coordinate of the vertical line
-  const previousX = previousPositions[index]; // Retrieve previous x-coordinate
-  const currentX = agent.pos[0]; // Current x-coordinate of the boid
-  const distanceCurPrev = Math.abs(previousX - currentX);
-  const distanceThreshold = 10;
-
-  if (previousX < lineX && currentX >= lineX && distanceCurPrev < 10) {
-    // console.log(`Boid ${index} crossed the line from left to right.`);
-    // console.log(distanceCurPrev);
-    let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1], dir: 1};
-    sendToMax(message);
-  } else if (previousX >= lineX && currentX < lineX && distanceCurPrev < 10) {
-    let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1], dir: -1};
-    // console.log(distanceCurPrev);
-    sendToMax(message);
-    // console.log(`Boid ${index} crossed the line from right to left.`);
-  }
-
-  // Update the stored position
-  previousPositions[index] = currentX;
 }
 
 
@@ -258,13 +192,6 @@ function vec2_relativewrap(out, v, w, h) {
 
 let previousPositions = agents.map(agent => agent.pos[0]); // Stores only x-coordinates
 
-
-function flowfield(pos) {
-  let upos = vec2.div([0, 0], pos, [canvas.width, canvas.height]);
-  vec2.sub(upos, upos, [0.5, 0.5]);
-  vec2.scale(upos, upos, -1);
-  return upos;
-}
 
 // animate:
 function animate() {
@@ -416,18 +343,11 @@ function animate() {
     vec2.add(agent.pos, agent.pos, agent.vel);
     donut(agent);
 
-    centerLineCollision(agent, i);
 
     agent.orient = Math.atan2(agent.vel[1], agent.vel[0]);
     //agent.orient = vec2.angle(agent.vel, [1, 0]);
   }
 
-
-  if (frameCount % params.boidManagerFrequency === 0) {
-    if(Math.random() < 0.5) {
-      manageBoids();
-    }
-  }
 
   frameCount++;
 }
@@ -444,13 +364,6 @@ function draw() {
   // ctx.filter = `hue-rotate(${hueRotation}deg)`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw the vertical line
-  ctx.beginPath();
-  ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  ctx.strokeStyle = lineColor; // Set the line color
-  ctx.lineWidth = 2; // Set the line width
-  ctx.stroke();
 
   for (let [index, agent] of agents.entries()) {
 
@@ -465,7 +378,6 @@ function draw() {
       }
     }
 
-    centerLineCollision(agent, index);
 
     // draw trail
     agent.trail.push([...agent.pos]);
@@ -487,7 +399,7 @@ function draw() {
       const dy = y2 - y1;
       let distance = Math.sqrt(dx * dx + dy * dy);
 
-      if(distance > 2) continue;
+      // if(distance > 2) continue;
    
       ctx.moveTo(x1, y1); 
       ctx.lineTo(x2, y2);
@@ -499,26 +411,6 @@ function draw() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-
-    // draw boid
-    ctx.save();
-    {
-      // ctx.translate(agent.pos[0], agent.pos[1]);
-      // ctx.rotate(agent.orient);
-      
-      ctx.beginPath();
-      // ctx.moveTo(4, 0);
-      // ctx.lineTo(-4, -2);
-      // ctx.lineTo(-4, 2);
-      // ctx.fillStyle = "#C1C067";
-
-      ctx.arc(agent.pos[0], agent.pos[1], 4, 0, 2*Math.PI);
-
-
-      ctx.fillStyle = `rgba(14,10,180,${agent.opacity})`;
-      ctx.fill();
-    }
-    ctx.restore();
 
   }
 
@@ -538,30 +430,6 @@ function draw() {
 }
 
 
-
-
-function manageBoids() {
-  const action = Math.random() < 0.5 ? 'add' : 'remove';
-
-  if (action === 'add' && agents.length <= (params.number_boids + params.populationOverflow)) {
-    let newBoid = {
-      pos: [Math.random() * canvas.width, Math.random() * canvas.height],
-      orient: Math.random()*(2*Math.PI),
-      vel: [0, 0],
-      acc: [0, 0],
-      trail: [],
-      opacity: 1,
-      fading: false
-    };
-    agents.push(newBoid);
-    previousPositions.push(newBoid.pos.x);
-    console.log("Added a boid. Total boids: " + agents.length + "pos: " + newBoid.pos);
-  } else if (action === 'remove' && agents.length > 1) {
-    const index = Math.floor(Math.random() * agents.length);
-    agents[index].fading = true; // Flag the boid for fading out
-    console.log("Fading out a boid. Total boids: " + agents.length);
-  }
-}
 
 
 function mapVals(value, start1, stop1, start2, stop2) {
