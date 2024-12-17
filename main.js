@@ -22,7 +22,6 @@ let windSpeed,
 
 
 let green = "rgba(0,200,0,0.5)";
-let lineColor = "#8F851C";
 
 // there is a canvas
 const canvas = document.getElementById("mycanvas");
@@ -66,43 +65,43 @@ for (let i = 0; i < params.number_boids; i++) {
 
 // WEATHER
 
-async function getWindData(city) {
-  const apiKey = '9b25d3712337384ddf7db3c1416cf493'; // Replace with your OpenWeather API key
-  const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+// async function getWindData(city) {
+//   const apiKey = 'XXX'; // Replace with your OpenWeather API key
+//   const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
 
-  try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-          throw new Error('Failed to fetch data');
-      }
-      const data = await response.json();
+//   try {
+//       const response = await fetch(apiUrl);
+//       if (!response.ok) {
+//           throw new Error('Failed to fetch data');
+//       }
+//       const data = await response.json();
 
-      // Extract wind speed and direction
-      windSpeed = data.wind.speed; // Wind speed in m/s
-      windDirection = data.wind.deg; // Wind direction in degrees
+//       // Extract wind speed and direction
+//       windSpeed = data.wind.speed; // Wind speed in m/s
+//       windDirection = data.wind.deg; // Wind direction in degrees
 
-      temp = data.main.temp;
-      let clampedHue = Math.max(-5, Math.min(20, temp));
-      // Map the range -5 to 20 to 0° to 360°
-      hueRotation = ((clampedHue + 5) / 25) * 360;
+//       temp = data.main.temp;
+//       let clampedHue = Math.max(-5, Math.min(20, temp));
+//       // Map the range -5 to 20 to 0° to 360°
+//       hueRotation = ((clampedHue + 5) / 25) * 360;
 
-      windSpeed = 100
-      windDirection = 1
+//       windSpeed = 100
+//       windDirection = 1
 
-      console.log(`Wind Speed: ${windSpeed} m/s`);
-      console.log(`Wind Direction: ${windDirection}°`);
+//       console.log(`Wind Speed: ${windSpeed} m/s`);
+//       console.log(`Wind Direction: ${windDirection}°`);
 
-      console.log(`Temperature: ${temp}°`);
-  } catch (error) {
-      console.error('Error:', error);
-  }
-}
+//       console.log(`Temperature: ${temp}°`);
+//   } catch (error) {
+//       console.error('Error:', error);
+//   }
+// }
 
-getWindData('Toronto');
+// getWindData('Toronto');
 
-function calculateWindForce() {
-  return [Math.cos(windDirection) * windSpeed, Math.sin(windDirection) * windSpeed];
-}
+// function calculateWindForce() {
+//   return [Math.cos(windDirection) * windSpeed, Math.sin(windDirection) * windSpeed];
+// }
 
 // // create the interface:
 // let gui = new dat.GUI({ name: "My GUI", closed: true });
@@ -117,24 +116,24 @@ function calculateWindForce() {
 // gui.add(params, "cohesion_factor", 0.01, 10);
 // gui.add(params, "alignment_factor", 0.01, 100);
 
-function sendToMax(data) {
-  changeLineColor(100)
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(data));
-    // console.log("Message sent to Max:", data);
-  } else {
-      console.log("WebSocket not ready, waiting for connection...");
-  }
+// function sendToMax(data) {
+//   changeLineColor(100)
+//   if (ws.readyState === WebSocket.OPEN) {
+//     ws.send(JSON.stringify(data));
+//     // console.log("Message sent to Max:", data);
+//   } else {
+//       console.log("WebSocket not ready, waiting for connection...");
+//   }
 
-}
+// }
 
 
-function changeLineColor(s) {
-  lineColor = "#D3EAB0";
-  setTimeout(() => {
-    lineColor = "#8F851C";
-  }, s); 
-}
+// function changeLineColor(s) {
+//   lineColor = "#D3EAB0";
+//   setTimeout(() => {
+//     lineColor = "#8F851C";
+//   }, s); 
+// }
 
 
 let resize = function () {
@@ -203,11 +202,11 @@ function centerLineCollision(agent, index) {
     // console.log(`Boid ${index} crossed the line from left to right.`);
     // console.log(distanceCurPrev);
     let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1], dir: 1};
-    sendToMax(message);
+    // sendToMax(message);
   } else if (previousX >= lineX && currentX < lineX && distanceCurPrev < 10) {
     let message = { posX: agent.pos[0], posY: agent.pos[1], velX: agent.vel[0], velY: agent.vel[1], dir: -1};
     // console.log(distanceCurPrev);
-    sendToMax(message);
+    // sendToMax(message);
     // console.log(`Boid ${index} crossed the line from right to left.`);
   }
 
@@ -393,7 +392,7 @@ function animate() {
 
 let selectedAgents = [];
 let selected = false;
-const selectedCount = 5;
+const selectedCount = 4;
 
 function randomSelectFocusedBoids() {
 
@@ -406,17 +405,10 @@ function randomSelectFocusedBoids() {
     }
     
   }
-  // while (selectedAgents.length < 3) {
-  //   const randomIndex = Math.floor(Math.random() * agents.length);
-  //   if (!selectedAgents.includes(agents[randomIndex])) {
-  //     selectedAgents.push(agents[randomIndex]);
-  //   }
-  // }
 };
 
 randomSelectFocusedBoids();
 
-console.log(selectedAgents)
 // draw:
 function draw() {
   // update the scene:
@@ -424,18 +416,11 @@ function draw() {
 
   // 	clear screen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#1E1E21";
+  ctx.fillStyle = "black";
   // temp color change
   // ctx.filter = `hue-rotate(${hueRotation}deg)`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw the vertical line
-  // ctx.beginPath();
-  // ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  // ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  // ctx.strokeStyle = lineColor; // Set the line color
-  // ctx.lineWidth = 2; // Set the line width
-  // ctx.stroke();
 
   console.log(selectedAgents.length)
   if(Math.random() > 0.8 && selectedAgents.length == selectedCount) {
@@ -455,7 +440,7 @@ function draw() {
       ctx.lineTo(-4, -2);
       ctx.lineTo(-4, 2);
       // ctx.fillStyle = "#C1C067";
-      ctx.fillStyle ="rgba(255, 255, 255, 0.3)";
+      ctx.fillStyle ="rgba(255, 255, 255, 0.6)";
       ctx.fill();
     }
     ctx.restore();
@@ -497,5 +482,6 @@ function draw() {
 
   window.requestAnimationFrame(draw);
 }
+
 
 draw();
