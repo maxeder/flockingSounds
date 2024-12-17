@@ -50,7 +50,6 @@ canvas.style.height = `${rect.height}px`;
 let target = [canvas.width / 10, canvas.height / 10];
 
 
-const ws = new WebSocket('ws://localhost:8080');
 
 console.log(canvas.width)
 
@@ -70,68 +69,6 @@ for (let i = 0; i < params.number_boids; i++) {
   agents.push(agent);
 }
 
-
-
-// WEATHER
-
-async function getWindData(city) {
-  const apiKey = 'XXXXXX'; // Replace with your OpenWeather API key
-  const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
-
-  try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-          throw new Error('Failed to fetch data');
-      }
-      const data = await response.json();
-
-      // Extract wind speed and direction
-      windSpeed = data.wind.speed; // Wind speed in m/s
-      windDirection = data.wind.deg; // Wind direction in degrees
-
-      temp = data.main.temp;
-      let clampedHue = Math.max(-5, Math.min(20, temp));
-      // Map the range -5 to 20 to 0° to 360°
-      hueRotation = ((clampedHue + 5) / 25) * 360;
-
-      windSpeed = 100
-      windDirection = 1
-
-      console.log(`Wind Speed: ${windSpeed} m/s`);
-      console.log(`Wind Direction: ${windDirection}°`);
-
-      console.log(`Temperature: ${temp}°`);
-  } catch (error) {
-      console.error('Error:', error);
-  }
-}
-
-getWindData('Toronto');
-
-function calculateWindForce() {
-  return [Math.cos(windDirection) * windSpeed, Math.sin(windDirection) * windSpeed];
-}
-
-
-
-function sendToMax(data) {
-  changeLineColor(100)
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(data));
-    // console.log("Message sent to Max:", data);
-  } else {
-      console.log("WebSocket not ready, waiting for connection...");
-  }
-
-}
-
-
-function changeLineColor(s) {
-  lineColor = "#D3EAB0";
-  setTimeout(() => {
-    lineColor = "#8F851C";
-  }, s); 
-}
 
 
 let resize = function () {
@@ -333,13 +270,6 @@ function animate() {
     vec2.set(agent.acc, 0, 0);
     vec2.add(agent.acc, agent.acc, force);
 
-    // wind force
-    // if (windDirection) {
-    //   let windForce = calculateWindForce();
-    //   vec2.add(agent.acc, agent.acc, windForce);
-    // }
-
-
     vec2_maxlength(agent.acc, agent.acc, params.acceleration_limit);
   }
 
@@ -375,10 +305,9 @@ function draw() {
     ctx.beginPath();
     ctx.moveTo(agents[0].pos[0], agents[0].pos[1]);
     ctx.lineTo(agents[1].pos[0], agents[1].pos[1]);
-    // ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Line color with transparency
-     ctx.strokeStyle = `hsla(${hue}, 85%, 70%, 0.1)`;
-     ctx.strokeStyle = "rgba(255,255,255,0.2)";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = `hsla(${hue}, 85%, 70%, 0.2)`;
+    //  ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 
