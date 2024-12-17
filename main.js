@@ -20,12 +20,13 @@ let windSpeed,
   hueRotation;
 
 let lineColor = "#8F851C";
-let target = [canvas.width / 10, canvas.height / 10];
+
 
 // there is a canvas
 const canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext("2d");
 
+let target = [canvas.width / 10, canvas.height / 10];
 
 const ws = new WebSocket('ws://localhost:8080');
 
