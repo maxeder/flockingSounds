@@ -44,6 +44,9 @@ canvas.style.height = `${rect.height}px`;
 
 
 
+
+
+
 let target = [canvas.width / 10, canvas.height / 10];
 
 
@@ -72,7 +75,7 @@ for (let i = 0; i < params.number_boids; i++) {
 // WEATHER
 
 async function getWindData(city) {
-  const apiKey = '9b25d3712337384ddf7db3c1416cf493'; // Replace with your OpenWeather API key
+  const apiKey = 'XXXXXX'; // Replace with your OpenWeather API key
   const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
 
   try {
@@ -109,18 +112,7 @@ function calculateWindForce() {
   return [Math.cos(windDirection) * windSpeed, Math.sin(windDirection) * windSpeed];
 }
 
-// // create the interface:
-// let gui = new dat.GUI({ name: "My GUI", closed: true });
-// // add a slider for params.speed, in the range of 0 to 10, stepping in 1's
-// gui.add(params, "speed_limit", 0, 100);
-// gui.add(params, "acceleration_limit", 0, 1);
-// gui.add(params, "collision_distance", 1, 500);
-// gui.add(params, "collision_factor", 0, 10000);
-// gui.add(params, "wander_factor", 0, 100);
-// gui.add(params, "antitarget_factor", -10000000, 10000000);
-// gui.add(params, "field_of_view", 0, Math.PI);
-// gui.add(params, "cohesion_factor", 0.01, 10);
-// gui.add(params, "alignment_factor", 0.01, 100);
+
 
 function sendToMax(data) {
   changeLineColor(100)
@@ -148,35 +140,6 @@ let resize = function () {
 };
 window.addEventListener("resize", resize);
 resize();
-
-
-// pointerdown:
-canvas.addEventListener("pointerdown", function (event) {
-  let x = event.clientX;
-  let y = event.clientY;
-  let btn = event.buttons;
-  let t = performance.now();
-
-  target = [x, y];
-});
-
-// pointerup:
-canvas.addEventListener("pointerup", function (event) {
-  let x = event.clientX;
-  let y = event.clientY;
-  let btn = event.buttons;
-  let t = performance.now();
-});
-
-// pointermove:
-canvas.addEventListener("pointermove", function (event) {
-  let x = event.clientX;
-  let y = event.clientY;
-  let btn = event.buttons;
-  let t = performance.now();
-
-  target = [x, y];
-});
 
 // key 'c' to clear all paths
 // key 'm' to toggle moving mode
@@ -257,11 +220,6 @@ function flowfield(pos) {
 
 // animate:
 function animate() {
-  // let the target wander around
-  // let wander = vec2.random([0, 0], Math.random() * 10);
-  // vec2.add(target, target, wander);
-
-  // donut(target);
 
   for (let agent of agents) {
     // add up all the forces on this agent
@@ -409,78 +367,6 @@ function draw() {
   // update the scene:
   animate();
 
-  // 	clear screen
-  // ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // ctx.fillStyle = "#1E1E21";
-  // ctx.filter = `hue-rotate(${hueRotation}deg)`;
-  // ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Draw the vertical line
-  // ctx.beginPath();
-  // ctx.moveTo(canvas.width / 2, 0); // Start at the top middle
-  // ctx.lineTo(canvas.width / 2, canvas.height); // Draw to the bottom middle
-  // ctx.strokeStyle = lineColor; // Set the line color
-  // ctx.lineWidth = 2; // Set the line width
-  // ctx.stroke();
-
-  for (let agent of agents) {
-
-    // // draw trail
-    // agent.trail.push([...agent.pos]);
-
-
-    // // Limit trail length to avoid memory issues
-    // if (agent.trail.length > params.trailMaxLength) { // Adjust length as needed
-    //   agent.trail.shift();
-    // }
-    
-
-    // Draw the trail
-    // ctx.beginPath();
-    // for (let i = 0; i < agent.trail.length - 1; i++) {
-    //   const [x1, y1] = agent.trail[i];
-    //   const [x2, y2] = agent.trail[i + 1];
-
-    //   const dx = x2 - x1;
-    //   const dy = y2 - y1;
-    //   let distance = Math.sqrt(dx * dx + dy * dy);
-
-    //   if(distance > 2) continue;
-   
-    //   ctx.moveTo(x1, y1); 
-    //   ctx.lineTo(x2, y2);
-    // }
-    // ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; // Semi-transparent white
-    // ctx.lineWidth = 2;
-    // ctx.stroke();
-
-    
-
-
-    // // draw boid
-    // ctx.save();
-    // {
-    //   // ctx.translate(agent.pos[0], agent.pos[1]);
-    //   // ctx.rotate(agent.orient);
-      
-    //   // ctx.beginPath();
-
-    //   // ctx.moveTo(4, 0);
-    //   // ctx.lineTo(-4, -2);
-    //   // ctx.lineTo(-4, 2);
-    //   // ctx.fillStyle = "#C1C067";
-    //   // ctx.fill();
-      
-    //   ctx.beginPath();
-    //   ctx.arc(agent.pos[0], agent.pos[1], 2, 0, Math.PI * 2, false);
-    //   ctx.fillStyle = 'rgba(20,20,20,0.6)';
-    //   ctx.fill();
-
-    // }
-    // ctx.restore();
-
-  }
-
 
   const hue = frameCount % 360; 
 
@@ -490,27 +376,18 @@ function draw() {
     ctx.moveTo(agents[0].pos[0], agents[0].pos[1]);
     ctx.lineTo(agents[1].pos[0], agents[1].pos[1]);
     // ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Line color with transparency
-     ctx.strokeStyle = `hsla(${hue}, 85%, 70%, 0.01)`
-    ctx.lineWidth = 2;
+     ctx.strokeStyle = `hsla(${hue}, 85%, 70%, 0.1)`;
+     ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 3;
     ctx.stroke();
   }
 
-
-  if(params.target) {
-    // draw target
-    ctx.save();
-    {
-      ctx.fillStyle = "#D2DD9C";
-      ctx.beginPath();
-      ctx.arc(target[0], target[1], 10, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
 
   frameCount++;
 
   window.requestAnimationFrame(draw);
 }
+ctx.fillStyle = "black"; 
+ctx.fillRect(0, 0, canvas.width, canvas.height); 
 
 draw();
