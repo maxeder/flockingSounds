@@ -409,8 +409,8 @@ function draw() {
 
   // clear screen
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#1E1E21";
-  ctx.filter = `hue-rotate(${hueRotation}deg)`;
+  ctx.fillStyle = "black";
+  // ctx.filter = `hue-rotate(${hueRotation}deg)`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.strokeStyle = "rgba(255,255,255,0.6)";
