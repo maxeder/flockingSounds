@@ -70,7 +70,7 @@ for (let i = 0; i < params.number_boids; i++) {
 // WEATHER
 
 async function getWindData(city) {
-  const apiKey = '9b25d3712337384ddf7db3c1416cf493'; // Replace with your OpenWeather API key
+  const apiKey = 'XXX'; // Replace with your OpenWeather API key
   const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
 
   try {
